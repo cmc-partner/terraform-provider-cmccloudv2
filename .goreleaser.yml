@@ -1,9 +1,4 @@
-
-# Based on the Goreleaser configuration provided at:
-# https://github.com/hashicorp/terraform-provider-scaffolding
-#
-# Artifacts must be produced matching the layout described at:
-# https://www.terraform.io/docs/registry/providers/publishing.html
+version: 2
 before:
   hooks:
     - go mod tidy
@@ -11,7 +6,6 @@ builds:
   - env:
       - CGO_ENABLED=0
       # - GPG_PRIVATE_KEY=${{ secrets.GPG_PRIVATE_KEY }}
-      # - PASSPHRASE=${{ secrets.PASSPHRASE }}
     mod_timestamp: '{{ .CommitTimestamp }}'
     flags:
       - -trimpath
@@ -49,5 +43,3 @@ signs:
       - "${artifact}"
 release:
   draft: true
-changelog:
-  skip: true
