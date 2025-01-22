@@ -4,22 +4,21 @@ on:
     branches:
       - main
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   ci:
     runs-on: ubuntu-latest
     steps: 
-      - name: Install Go
-        uses: actions/setup-go@v1
-        with:
-          go-version: ${{ matrix.go-version }}
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: 'stable'
-      - name: Checkout code
-        uses: actions/checkout@v4
+          go-version-file: 'go.mod'
+          cache: true
+      - run: go mod download
+      - run: go build -v .
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v6
       - name: Run Unit tests.
