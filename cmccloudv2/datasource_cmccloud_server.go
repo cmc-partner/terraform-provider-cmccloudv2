@@ -83,12 +83,12 @@ func dataSourceServerRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*CombinedConfig).goCMCClient()
 
 	var allServers []gocmcapiv2.Server
-	if server_id := d.Get("server_id").(string); server_id != "" {
-		server, err := client.Server.Get(server_id, false)
+	if serverId := d.Get("server_id").(string); serverId != "" {
+		server, err := client.Server.Get(serverId, false)
 		if err != nil {
 			if errors.Is(err, gocmcapiv2.ErrNotFound) {
 				d.SetId("")
-				return fmt.Errorf("Unable to retrieve server [%s]: %s", server_id, err)
+				return fmt.Errorf("unable to retrieve server [%s]: %s", serverId, err)
 			}
 		}
 		allServers = append(allServers, server)
@@ -101,7 +101,7 @@ func dataSourceServerRead(d *schema.ResourceData, meta interface{}) error {
 		}
 		servers, err := client.Server.List(params)
 		if err != nil {
-			return fmt.Errorf("Error when get servers %v", err)
+			return fmt.Errorf("error when get servers %v", err)
 		}
 		allServers = append(allServers, servers...)
 	}
@@ -127,7 +127,7 @@ func dataSourceServerRead(d *schema.ResourceData, meta interface{}) error {
 				switch server.Addresses.(type) {
 				case []interface{}:
 				case map[string]interface{}:
-					found_ip := false
+					foundIp := false
 					if m, ok := server.Addresses.(map[string]interface{}); ok {
 						// Duyệt qua map
 						for _, value := range m {
@@ -135,12 +135,12 @@ func dataSourceServerRead(d *schema.ResourceData, meta interface{}) error {
 								intermap := inter.(map[string]interface{})
 								ip := intermap["addr"].(string)
 								if ip == v {
-									found_ip = true
+									foundIp = true
 								}
 							}
 						}
 					}
-					if !found_ip {
+					if !foundIp {
 						continue
 					}
 				default:
@@ -152,12 +152,12 @@ func dataSourceServerRead(d *schema.ResourceData, meta interface{}) error {
 		allServers = filteredServers
 	}
 	if len(allServers) < 1 {
-		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again")
+		return fmt.Errorf("your query returned no results. Please change your search criteria and try again")
 	}
 
 	if len(allServers) > 1 {
 		gocmcapiv2.Logo("[DEBUG] Multiple results found: %#v", allServers)
-		return fmt.Errorf("Your query returned more than one result. Please try a more specific search criteria")
+		return fmt.Errorf("your query returned more than one result. Please try a more specific search criteria")
 	}
 
 	return dataSourceComputeServerAttributes(d, allServers[0])
@@ -166,14 +166,15 @@ func dataSourceServerRead(d *schema.ResourceData, meta interface{}) error {
 func dataSourceComputeServerAttributes(d *schema.ResourceData, server gocmcapiv2.Server) error {
 	log.Printf("[DEBUG] Retrieved server %s: %#v", server.ID, server)
 	d.SetId(server.ID)
-	d.Set("name", server.Name)
-	d.Set("status", server.Status)
-	d.Set("vm_state", strings.ToLower(server.VMState))
-	d.Set("status", strings.ToLower(server.Status))
-	d.Set("description", server.Description)
-	d.Set("cpu", server.Flavor.CPU)
-	d.Set("ram", server.Flavor.RAM/1024)
-	d.Set("flavor_name", server.Flavor.OriginalName)
-	d.Set("created_at", server.Created)
-	return nil
+	return errors.Join(
+		d.Set("name", server.Name),
+		d.Set("status", server.Status),
+		d.Set("vm_state", strings.ToLower(server.VMState)),
+		d.Set("status", strings.ToLower(server.Status)),
+		d.Set("description", server.Description),
+		d.Set("cpu", server.Flavor.CPU),
+		d.Set("ram", server.Flavor.RAM/1024),
+		d.Set("flavor_name", server.Flavor.OriginalName),
+		d.Set("created_at", server.Created),
+	)
 }

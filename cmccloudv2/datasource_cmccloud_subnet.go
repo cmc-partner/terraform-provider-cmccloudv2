@@ -59,12 +59,12 @@ func dataSourceSubnetRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*CombinedConfig).goCMCClient()
 
 	var allSubnets []gocmcapiv2.Subnet
-	if subnet_id := d.Get("subnet_id").(string); subnet_id != "" {
-		subnet, err := client.Subnet.Get(subnet_id)
+	if subnetId := d.Get("subnet_id").(string); subnetId != "" {
+		subnet, err := client.Subnet.Get(subnetId)
 		if err != nil {
 			if errors.Is(err, gocmcapiv2.ErrNotFound) {
 				d.SetId("")
-				return fmt.Errorf("Unable to retrieve subnet [%s]: %s", subnet_id, err)
+				return fmt.Errorf("unable to retrieve subnet [%s]: %s", subnetId, err)
 			}
 		}
 		allSubnets = append(allSubnets, subnet)
@@ -74,7 +74,7 @@ func dataSourceSubnetRead(d *schema.ResourceData, meta interface{}) error {
 		}
 		subnets, err := client.Subnet.List(params)
 		if err != nil {
-			return fmt.Errorf("Error when get subnets %v", err)
+			return fmt.Errorf("error when get subnets %v", err)
 		}
 		allSubnets = append(allSubnets, subnets...)
 	}
@@ -101,12 +101,12 @@ func dataSourceSubnetRead(d *schema.ResourceData, meta interface{}) error {
 		allSubnets = filteredSubnets
 	}
 	if len(allSubnets) < 1 {
-		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again")
+		return fmt.Errorf("your query returned no results. Please change your search criteria and try again")
 	}
 
 	if len(allSubnets) > 1 {
 		gocmcapiv2.Logo("[DEBUG] Multiple results found: %#v", allSubnets)
-		return fmt.Errorf("Your query returned more than one result. Please try a more specific search criteria")
+		return fmt.Errorf("your query returned more than one result. Please try a more specific search criteria")
 	}
 
 	return dataSourceComputeSubnetAttributes(d, allSubnets[0])
@@ -115,10 +115,11 @@ func dataSourceSubnetRead(d *schema.ResourceData, meta interface{}) error {
 func dataSourceComputeSubnetAttributes(d *schema.ResourceData, subnet gocmcapiv2.Subnet) error {
 	log.Printf("[DEBUG] Retrieved subnet %s: %#v", subnet.ID, subnet)
 	d.SetId(subnet.ID)
-	d.Set("name", subnet.Name)
-	d.Set("cidr", subnet.Cidr)
-	d.Set("gateway_ip", subnet.GatewayIP)
-	d.Set("vpc_id", subnet.VpcID)
-	d.Set("created_at", subnet.CreatedAt)
-	return nil
+	return errors.Join(
+		d.Set("name", subnet.Name),
+		d.Set("cidr", subnet.Cidr),
+		d.Set("gateway_ip", subnet.GatewayIP),
+		d.Set("vpc_id", subnet.VpcID),
+		d.Set("created_at", subnet.CreatedAt),
+	)
 }

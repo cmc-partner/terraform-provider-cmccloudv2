@@ -38,24 +38,24 @@ func resourceELBPoolMemberCreate(d *schema.ResourceData, meta interface{}) error
 		"monitor_address": d.Get("monitor_address").(string),
 	}
 	// truong nay lay rieng, neu ko gia tri default = 0 se bi loi ko thuoc rang 0 65535
-	if monitor_port, ok := d.GetOk("monitor_port"); ok && monitor_port.(int) > 0 {
-		params["monitor_port"] = monitor_port.(int)
+	if monitorPort, ok := d.GetOk("monitor_port"); ok && monitorPort.(int) > 0 {
+		params["monitor_port"] = monitorPort.(int)
 	}
 
-	elb_id, err := getElbIdFromPool(meta, d.Get("pool_id").(string))
+	elbId, err := getElbIdFromPool(meta, d.Get("pool_id").(string))
 	if err != nil {
 		return err
 	}
 
 	// doi cho den khi elb het pending update
-	err = waitUntilELBEditable(elb_id, d, meta)
+	err = waitUntilELBEditable(elbId, d, meta)
 	if err != nil {
 		return err
 	}
 
 	member, err := client.ELB.CreatePoolMember(d.Get("pool_id").(string), params)
 	if err != nil {
-		return fmt.Errorf("Error creating ELB Pool Member: %s", err)
+		return fmt.Errorf("error creating ELB Pool Member: %s", err)
 	}
 	d.SetId(member.ID)
 	// _, err = waitUntilELBPoolMemberStatusChangedState(d, meta, []string{"ONLINE", "ACTIVE", "OFFLINE", "NO_MONITOR"}, []string{"ERROR", "DELETED", "DEGRADED"}, d.Timeout(schema.TimeoutCreate))
@@ -74,16 +74,16 @@ func resourceELBPoolMemberUpdate(d *schema.ResourceData, meta interface{}) error
 		"monitor_address": d.Get("monitor_address").(string),
 	}
 	// truong nay lay rieng, neu ko gia tri default = 0 se bi loi ko thuoc rang 0 65535
-	if monitor_port, ok := d.GetOk("monitor_port"); ok && monitor_port.(int) > 0 {
-		params["monitor_port"] = monitor_port.(int)
+	if monitorPort, ok := d.GetOk("monitor_port"); ok && monitorPort.(int) > 0 {
+		params["monitor_port"] = monitorPort.(int)
 	}
 	_, err := client.ELB.UpdatePoolMember(d.Get("pool_id").(string), d.Id(), params)
 	if err != nil {
-		return fmt.Errorf("Error updating ELB Pool Member: %s", err)
+		return fmt.Errorf("error updating ELB Pool Member: %s", err)
 	}
 	_, err = waitUntilELBPoolMemberStatusChangedState(d, meta, []string{"ONLINE", "ACTIVE", "OFFLINE", "NO_MONITOR"}, []string{"ERROR", "DELETED", "DEGRADED"}, d.Timeout(schema.TimeoutCreate))
 	if err != nil {
-		return fmt.Errorf("Error updating ELB Pool Member: %s", err)
+		return fmt.Errorf("error updating ELB Pool Member: %s", err)
 	}
 	return resourceELBPoolMemberRead(d, meta)
 }
@@ -92,7 +92,7 @@ func resourceELBPoolMemberRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*CombinedConfig).goCMCClient()
 	member, err := client.ELB.GetPoolMember(d.Get("pool_id").(string), d.Id())
 	if err != nil {
-		return fmt.Errorf("Error retrieving ELB Pool Member %s: %v", d.Id(), err)
+		return fmt.Errorf("error retrieving ELB Pool Member %s: %v", d.Id(), err)
 	}
 
 	_ = d.Set("name", member.Name)
@@ -110,12 +110,12 @@ func resourceELBPoolMemberRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceELBPoolMemberDelete(d *schema.ResourceData, meta interface{}) error {
-	elb_id, err := getElbIdFromPool(meta, d.Get("pool_id").(string))
+	elbId, err := getElbIdFromPool(meta, d.Get("pool_id").(string))
 	if err != nil {
 		return err
 	}
 
-	err = waitUntilELBEditable(elb_id, d, meta)
+	err = waitUntilELBEditable(elbId, d, meta)
 	if err != nil {
 		return err
 	}
@@ -123,11 +123,11 @@ func resourceELBPoolMemberDelete(d *schema.ResourceData, meta interface{}) error
 	_, err = getClient(meta).ELB.DeletePoolMember(d.Get("pool_id").(string), d.Id())
 
 	if err != nil {
-		return fmt.Errorf("Error delete ELB Pool Member: %v", err)
+		return fmt.Errorf("error delete ELB Pool Member: %v", err)
 	}
 	_, err = waitUntilELBPoolMemberDeleted(d, meta)
 	if err != nil {
-		return fmt.Errorf("Error delete ELB Pool Member: %v", err)
+		return fmt.Errorf("error delete ELB Pool Member: %v", err)
 	}
 	return nil
 }

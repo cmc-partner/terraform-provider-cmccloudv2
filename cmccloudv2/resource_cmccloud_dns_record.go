@@ -37,7 +37,7 @@ func resourceDnsRecordCreate(d *schema.ResourceData, meta interface{}) error {
 	record, err := getClient(meta).DnsRecord.Create(d.Get("zone_id").(string), params)
 
 	if err != nil {
-		return fmt.Errorf("Error creating record: %s", err)
+		return fmt.Errorf("error creating record: %s", err)
 	}
 	d.SetId(record.ID)
 
@@ -56,7 +56,7 @@ func resourceDnsRecordUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 	_, err := client.WafRule.Update(id, params)
 	if err != nil {
-		return fmt.Errorf("Error when update dns record [%s]: %v", id, err)
+		return fmt.Errorf("error when update dns record [%s]: %v", id, err)
 	}
 
 	return resourceDnsRecordRead(d, meta)
@@ -64,7 +64,7 @@ func resourceDnsRecordUpdate(d *schema.ResourceData, meta interface{}) error {
 func resourceDnsRecordRead(d *schema.ResourceData, meta interface{}) error {
 	record, err := getClient(meta).DnsRecord.Get(d.Get("zone_id").(string), d.Id())
 	if err != nil {
-		return fmt.Errorf("Error retrieving DnsRecord %s: %v", d.Id(), err)
+		return fmt.Errorf("error retrieving DnsRecord %s: %v", d.Id(), err)
 	}
 
 	_ = d.Set("id", record.ID)
@@ -80,7 +80,7 @@ func resourceDnsRecordRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func flatternRecordIps(d *schema.ResourceData, ips []interface{}) []map[string]interface{} {
-	load_balance_type := d.Get("load_balance_type").(string)
+	loadBalanceType := d.Get("load_balance_type").(string)
 	result := make([]map[string]interface{}, len(ips))
 	for i, ip := range ips {
 		r := ip.(map[string]interface{})
@@ -89,7 +89,7 @@ func flatternRecordIps(d *schema.ResourceData, ips []interface{}) []map[string]i
 			"content": r["ip"].(string),
 			"ttl":     d.Get("ttl").(int),
 		}
-		if load_balance_type != "none" {
+		if loadBalanceType != "none" {
 			result[i]["weight"] = r["weight"].(int)
 		} else {
 			result[i]["weight"] = nil
@@ -98,13 +98,13 @@ func flatternRecordIps(d *schema.ResourceData, ips []interface{}) []map[string]i
 	return result
 }
 func convertRecordIps(d *schema.ResourceData, ips []gocmcapiv2.DnsRecordIP) []map[string]interface{} {
-	load_balance_type := d.Get("load_balance_type").(string)
+	loadBalanceType := d.Get("load_balance_type").(string)
 	result := make([]map[string]interface{}, len(ips))
 	for i, ip := range ips {
 		result[i] = map[string]interface{}{
 			"ip": ip.Content,
 		}
-		if load_balance_type != "none" {
+		if loadBalanceType != "none" {
 			result[i]["weight"] = ip.Weight
 		}
 	}
@@ -114,11 +114,11 @@ func resourceDnsRecordDelete(d *schema.ResourceData, meta interface{}) error {
 	_, err := getClient(meta).DnsRecord.Delete(d.Get("zone_id").(string), d.Id())
 
 	if err != nil {
-		return fmt.Errorf("Error delete record: %v", err)
+		return fmt.Errorf("error delete record: %v", err)
 	}
 	_, err = waitUntilDnsRecordDeleted(d, meta)
 	if err != nil {
-		return fmt.Errorf("Error delete record: %v", err)
+		return fmt.Errorf("error delete record: %v", err)
 	}
 	return nil
 }

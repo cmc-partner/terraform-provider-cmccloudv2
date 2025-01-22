@@ -100,16 +100,16 @@ func dataSourceFlavorDBRead(d *schema.ResourceData, meta interface{}) error {
 func dataSourceFlavorK8sRead(d *schema.ResourceData, meta interface{}) error {
 	return dataSourceFlavorRead(d, meta, "K8s")
 }
-func dataSourceFlavorRead(d *schema.ResourceData, meta interface{}, flavor_type string) error {
+func dataSourceFlavorRead(d *schema.ResourceData, meta interface{}, flavorType string) error {
 	client := meta.(*CombinedConfig).goCMCClient()
 
 	var allFlavors []gocmcapiv2.Flavor
-	if flavor_id := d.Get("flavor_id").(string); flavor_id != "" {
-		flavor, err := client.Flavor.Get(flavor_id)
+	if flavorId := d.Get("flavor_id").(string); flavorId != "" {
+		flavor, err := client.Flavor.Get(flavorId)
 		if err != nil {
 			if errors.Is(err, gocmcapiv2.ErrNotFound) {
 				d.SetId("")
-				return fmt.Errorf("Unable to retrieve flavor [%s]: %s", flavor_id, err)
+				return fmt.Errorf("unable to retrieve flavor [%s]: %s", flavorId, err)
 			}
 		}
 		allFlavors = append(allFlavors, flavor)
@@ -129,7 +129,7 @@ func dataSourceFlavorRead(d *schema.ResourceData, meta interface{}, flavor_type 
 		}
 		flavors, err := client.Flavor.List(params)
 		if err != nil {
-			return fmt.Errorf("Error when get flavors %v", err)
+			return fmt.Errorf("error when get flavors %v", err)
 		}
 		allFlavors = append(allFlavors, flavors...)
 	}
@@ -137,13 +137,13 @@ func dataSourceFlavorRead(d *schema.ResourceData, meta interface{}, flavor_type 
 		var filteredFlavors []gocmcapiv2.Flavor
 		for _, flavor := range allFlavors {
 			// check type
-			if flavor_type == "DBaas" && !flavor.ExtraSpecs.IsDatabaseFlavor {
+			if flavorType == "DBaas" && !flavor.ExtraSpecs.IsDatabaseFlavor {
 				continue
 			}
-			if flavor_type == "K8s" && !flavor.ExtraSpecs.IsK8sFlavor {
+			if flavorType == "K8s" && !flavor.ExtraSpecs.IsK8sFlavor {
 				continue
 			}
-			if flavor_type == "EC" && (flavor.ExtraSpecs.IsK8sFlavor || flavor.ExtraSpecs.IsDatabaseFlavor) {
+			if flavorType == "EC" && (flavor.ExtraSpecs.IsK8sFlavor || flavor.ExtraSpecs.IsDatabaseFlavor) {
 				continue
 			}
 			if v := d.Get("name").(string); v != "" {
@@ -171,25 +171,27 @@ func dataSourceFlavorRead(d *schema.ResourceData, meta interface{}, flavor_type 
 		allFlavors = filteredFlavors
 	}
 	if len(allFlavors) < 1 {
-		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again")
+		return fmt.Errorf("your query returned no results. Please change your search criteria and try again")
 	}
 
 	if len(allFlavors) > 1 {
 		gocmcapiv2.Logo("[DEBUG] Multiple results found: %#v", allFlavors)
-		return fmt.Errorf("Your query returned more than one result. Please try a more specific search criteria")
+		return fmt.Errorf("your query returned more than one result. Please try a more specific search criteria")
 	}
 
-	return dataSourceComputeFlavorAttributes(d, allFlavors[0], flavor_type)
+	return dataSourceComputeFlavorAttributes(d, allFlavors[0], flavorType)
 }
 
-func dataSourceComputeFlavorAttributes(d *schema.ResourceData, flavor gocmcapiv2.Flavor, flavor_type string) error {
+func dataSourceComputeFlavorAttributes(d *schema.ResourceData, flavor gocmcapiv2.Flavor, flavorType string) error {
 	log.Printf("[DEBUG] Retrieved flavor %s: %#v", flavor.ID, flavor)
 	d.SetId(flavor.ID)
-	d.Set("name", flavor.Name)
-	d.Set("cpu", flavor.Vcpus)
-	d.Set("ram", flavor.RAM/1024)
-	if flavor.Disk > 0 {
-		d.Set("disk", flavor.Disk)
+	var errs = []error{
+		d.Set("name", flavor.Name),
+		d.Set("cpu", flavor.Vcpus),
+		d.Set("ram", flavor.RAM/1024),
 	}
-	return nil
+	if flavor.Disk > 0 {
+		errs = append(errs, d.Set("disk", flavor.Disk))
+	}
+	return errors.Join(errs...)
 }

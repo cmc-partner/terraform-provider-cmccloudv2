@@ -69,7 +69,7 @@ func resourceWafWhitelistCreate(d *schema.ResourceData, meta interface{}) error 
 	whitelist, err := getClient(meta).WafWhitelist.Create(params)
 
 	if err != nil {
-		return fmt.Errorf("Error creating waf whitelist: %s", err)
+		return fmt.Errorf("error creating waf whitelist: %s", err)
 	}
 	d.SetId(whitelist.ID)
 	return resourceWafWhitelistRead(d, meta)
@@ -78,7 +78,7 @@ func resourceWafWhitelistCreate(d *schema.ResourceData, meta interface{}) error 
 func resourceWafWhitelistRead(d *schema.ResourceData, meta interface{}) error {
 	whitelist, err := getClient(meta).WafWhitelist.Get(d.Id())
 	if err != nil {
-		return fmt.Errorf("Error retrieving waf whitelist %s: %v", d.Id(), err)
+		return fmt.Errorf("error retrieving waf whitelist %s: %v", d.Id(), err)
 	}
 
 	_ = d.Set("id", whitelist.ID)
@@ -93,7 +93,7 @@ func resourceWafWhitelistRead(d *schema.ResourceData, meta interface{}) error {
 	setBool(d, "match_url", strings.Contains(whitelist.Mz, "URL"))
 	setBool(d, "match_name_check", strings.Contains(whitelist.Mz, "NAME"))
 
-	if v, ok := d.GetOkExists("match_header_var"); ok && v.(string) != "" {
+	if v, ok := d.GetOk("match_header_var"); ok && v.(string) != "" {
 		if strings.Contains(whitelist.Mz, "Cookie") {
 			_ = d.Set("match_header_var", "Cookie")
 		}
@@ -131,7 +131,7 @@ func resourceWafWhitelistUpdate(d *schema.ResourceData, meta interface{}) error 
 	}
 	_, err := client.WafWhitelist.Update(id, params)
 	if err != nil {
-		return fmt.Errorf("Error when update waf whitelist [%s]: %v", id, err)
+		return fmt.Errorf("error when update waf whitelist [%s]: %v", id, err)
 	}
 
 	return resourceVPCRead(d, meta)
@@ -140,11 +140,11 @@ func resourceWafWhitelistDelete(d *schema.ResourceData, meta interface{}) error 
 	_, err := getClient(meta).WafWhitelist.Delete(d.Id())
 
 	if err != nil {
-		return fmt.Errorf("Error delete waf whitelist: %v", err)
+		return fmt.Errorf("error delete waf whitelist: %v", err)
 	}
 	_, err = waitUntilWafWhitelistDeleted(d, meta)
 	if err != nil {
-		return fmt.Errorf("Error delete waf whitelist: %v", err)
+		return fmt.Errorf("error delete waf whitelist: %v", err)
 	}
 	return nil
 }

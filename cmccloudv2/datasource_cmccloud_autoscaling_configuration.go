@@ -41,53 +41,54 @@ func dataSourceAutoScalingConfigurationRead(d *schema.ResourceData, meta interfa
 	client := meta.(*CombinedConfig).goCMCClient()
 
 	var allAutoScalingConfigurations []gocmcapiv2.AutoScalingConfiguration
-	if autoscalingconfiguration_id := d.Get("autoscaling_configuration_id").(string); autoscalingconfiguration_id != "" {
-		autoscalingconfiguration, err := client.AutoScalingConfiguration.Get(autoscalingconfiguration_id)
+	if autoscalingConfigurationId := d.Get("autoscaling_configuration_id").(string); autoscalingConfigurationId != "" {
+		autoscalingConfiguration, err := client.AutoScalingConfiguration.Get(autoscalingConfigurationId)
 		if err != nil {
 			if errors.Is(err, gocmcapiv2.ErrNotFound) {
 				d.SetId("")
-				return fmt.Errorf("Unable to retrieve autoscaling configuration [%s]: %s", autoscalingconfiguration_id, err)
+				return fmt.Errorf("unable to retrieve autoscaling configuration [%s]: %s", autoscalingConfigurationId, err)
 			}
 		}
-		allAutoScalingConfigurations = append(allAutoScalingConfigurations, autoscalingconfiguration)
+		allAutoScalingConfigurations = append(allAutoScalingConfigurations, autoscalingConfiguration)
 	} else {
 		params := map[string]string{
 			"name": d.Get("name").(string),
 		}
 		autoscalingconfigurations, err := client.AutoScalingConfiguration.List(params)
 		if err != nil {
-			return fmt.Errorf("Error when get autoscaling configuration %v", err)
+			return fmt.Errorf("error when get autoscaling configuration %v", err)
 		}
 		allAutoScalingConfigurations = append(allAutoScalingConfigurations, autoscalingconfigurations...)
 	}
 	if len(allAutoScalingConfigurations) > 0 {
 		var filteredAutoScalingConfigurations []gocmcapiv2.AutoScalingConfiguration
-		for _, autoscalingconfiguration := range allAutoScalingConfigurations {
+		for _, autoscalingConfiguration := range allAutoScalingConfigurations {
 			if v := d.Get("name").(string); v != "" {
-				if strings.ToLower(autoscalingconfiguration.Name) != strings.ToLower(v) {
+				if strings.ToLower(autoscalingConfiguration.Name) != strings.ToLower(v) {
 					continue
 				}
 			}
-			filteredAutoScalingConfigurations = append(filteredAutoScalingConfigurations, autoscalingconfiguration)
+			filteredAutoScalingConfigurations = append(filteredAutoScalingConfigurations, autoscalingConfiguration)
 		}
 		allAutoScalingConfigurations = filteredAutoScalingConfigurations
 	}
 	if len(allAutoScalingConfigurations) < 1 {
-		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again")
+		return fmt.Errorf("your query returned no results. Please change your search criteria and try again")
 	}
 
 	if len(allAutoScalingConfigurations) > 1 {
 		gocmcapiv2.Logo("[DEBUG] Multiple results found: %#v", allAutoScalingConfigurations)
-		return fmt.Errorf("Your query returned more than one result. Please try a more specific search criteria")
+		return fmt.Errorf("your query returned more than one result. Please try a more specific search criteria")
 	}
 
 	return dataSourceComputeAutoScalingConfigurationAttributes(d, allAutoScalingConfigurations[0])
 }
 
-func dataSourceComputeAutoScalingConfigurationAttributes(d *schema.ResourceData, autoscalingconfiguration gocmcapiv2.AutoScalingConfiguration) error {
-	log.Printf("[DEBUG] Retrieved autoscaling configuration %s: %#v", autoscalingconfiguration.ID, autoscalingconfiguration)
-	d.SetId(autoscalingconfiguration.ID)
-	d.Set("name", autoscalingconfiguration.Name)
-	d.Set("created_at", autoscalingconfiguration.CreatedAt)
-	return nil
+func dataSourceComputeAutoScalingConfigurationAttributes(d *schema.ResourceData, autoscalingConfiguration gocmcapiv2.AutoScalingConfiguration) error {
+	log.Printf("[DEBUG] Retrieved autoscaling configuration %s: %#v", autoscalingConfiguration.ID, autoscalingConfiguration)
+	d.SetId(autoscalingConfiguration.ID)
+	return errors.Join(
+		d.Set("name", autoscalingConfiguration.Name),
+		d.Set("created_at", autoscalingConfiguration.CreatedAt),
+	)
 }

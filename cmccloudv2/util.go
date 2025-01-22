@@ -47,7 +47,7 @@ func isSet(diff *schema.ResourceDiff, key string) bool {
 	return ok
 }
 func setBool(d *schema.ResourceData, key string, newval bool) {
-	v, exists := d.GetOkExists(key)
+	v, exists := d.GetOk(key)
 	if exists && v.(bool) != newval {
 		_ = d.Set(key, newval)
 	}
@@ -131,19 +131,19 @@ func arrayContains(slice []string, item string) bool {
 	return false
 }
 
-func isIpBelongToCidr(ip_str, cidr_str string) (bool, error) {
-	ip := net.ParseIP(ip_str)
+func isIpBelongToCidr(ipStr, cidrStr string) (bool, error) {
+	ip := net.ParseIP(ipStr)
 	if ip == nil {
-		return false, fmt.Errorf("Invalid IP address %s", ip_str)
+		return false, fmt.Errorf("invalid IP address %s", ipStr)
 	}
 
-	_, cidr, err := net.ParseCIDR(cidr_str)
+	_, cidr, err := net.ParseCIDR(cidrStr)
 	if err != nil {
-		return false, fmt.Errorf("Invalid IP CIDR %s %v", cidr_str, err)
+		return false, fmt.Errorf("invalid IP CIDR %s %v", cidrStr, err)
 	}
 
 	if !cidr.Contains(ip) {
-		return false, fmt.Errorf("IP address %s is not within the CIDR block %s", ip_str, cidr_str)
+		return false, fmt.Errorf("IP address %s is not within the CIDR block %s", ipStr, cidrStr)
 	}
 	return true, nil
 }
@@ -153,11 +153,11 @@ func getClient(meta interface{}) *gocmcapiv2.Client {
 }
 func _checkDeletedRefreshFunc(d *schema.ResourceData, meta interface{}, getResourceFunc func(id string) (interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		resource, err := getResourceFunc(d.Id())
+		res, err := getResourceFunc(d.Id())
 		if errors.Is(err, gocmcapiv2.ErrNotFound) || strings.Contains(err.Error(), "not found") {
-			return resource, "true", nil
+			return res, "true", nil
 		}
-		return resource, "false", err
+		return res, "false", err
 	}
 }
 func waitUntilResourceDeleted(d *schema.ResourceData, meta interface{}, timeout WaitConf, getResourceFunc func(id string) (interface{}, error)) (interface{}, error) {
@@ -177,18 +177,17 @@ func _checkStatusRefreshFunc(d *schema.ResourceData, meta interface{}, errorStat
 	getResourceFunc func(id string) (interface{}, error),
 	getStatusFunc func(obj interface{}) string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		resource, err := getResourceFunc(d.Id())
+		res, err := getResourceFunc(d.Id())
 		if err != nil {
-			fmt.Errorf("Error retrieving resource %s: %v", d.Id(), err)
-			return nil, "", err
+			return nil, "", fmt.Errorf("error retrieving resource %s: %v", d.Id(), err)
 		}
-		newStatus := getStatusFunc(resource)
+		newStatus := getStatusFunc(res)
 		for _, v := range errorStatus {
 			if v == newStatus {
-				return resource, newStatus, fmt.Errorf("got the status " + newStatus)
+				return res, newStatus, fmt.Errorf("got the status " + newStatus)
 			}
 		}
-		return resource, newStatus, nil
+		return res, newStatus, nil
 	}
 }
 func waitUntilResourceStatusChanged(d *schema.ResourceData, meta interface{}, targetStatus []string, errorStatus []string, timeout WaitConf,
@@ -237,21 +236,21 @@ func waitUntilResourceStatusChanged(d *schema.ResourceData, meta interface{}, ta
 //	}
 //
 // kiem tra xem 1 truong trong sub block co thay doi hay khong
-func isSubBlockFieldChanged(d *schema.ResourceData, block_name string, field_name string) (bool, interface{}) {
-	if d.HasChange(block_name) {
+func isSubBlockFieldChanged(d *schema.ResourceData, blockName string, fieldName string) (bool, interface{}) {
+	if d.HasChange(blockName) {
 		// Get the old and new values
-		old, new := d.GetChange(block_name)
+		nameOld, nameNew := d.GetChange(blockName)
 
-		oldSubBlocks := old.([]interface{})
-		newSubBlocks := new.([]interface{})
+		oldSubBlocks := nameOld.([]interface{})
+		newSubBlocks := nameNew.([]interface{})
 
 		for i := range oldSubBlocks {
 			oldSubBlock := oldSubBlocks[i].(map[string]interface{})
 			newSubBlock := newSubBlocks[i].(map[string]interface{})
 
 			// Check if field_name has changed
-			if oldSubBlock[field_name] != newSubBlock[field_name] {
-				return true, newSubBlock[field_name]
+			if oldSubBlock[fieldName] != newSubBlock[fieldName] {
+				return true, newSubBlock[fieldName]
 			}
 		}
 	}

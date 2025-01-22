@@ -28,10 +28,10 @@ func resourceVolumeAutoBackup() *schema.Resource {
 
 func resourceVolumeAutoBackupCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*CombinedConfig).goCMCClient()
-	schedule_time := d.Get("schedule_time").(string)
-	parts := strings.Split(schedule_time, ":")
+	scheduleTime := d.Get("schedule_time").(string)
+	parts := strings.Split(scheduleTime, ":")
 	if len(parts) != 2 {
-		return fmt.Errorf("Invalid schedule time [%s], correct format is HH:mm (24-h format), eg: 19:05", schedule_time)
+		return fmt.Errorf("invalid schedule time [%s], correct format is HH:mm (24-h format), eg: 19:05", scheduleTime)
 	}
 	hour := parts[0]
 	minute := parts[1]
@@ -46,7 +46,7 @@ func resourceVolumeAutoBackupCreate(d *schema.ResourceData, meta interface{}) er
 		"incremental": d.Get("incremental").(bool),
 	})
 	if err != nil {
-		return fmt.Errorf("Error creating Volume AutoBackup: %s", err)
+		return fmt.Errorf("error creating Volume AutoBackup: %s", err)
 	}
 	d.SetId(vol.ID)
 
@@ -57,7 +57,7 @@ func resourceVolumeAutoBackupRead(d *schema.ResourceData, meta interface{}) erro
 	client := meta.(*CombinedConfig).goCMCClient()
 	autobackup, err := client.VolumeAutoBackup.Get(d.Id())
 	if err != nil {
-		return fmt.Errorf("Error retrieving Volume AutoBackup %s: %v", d.Id(), err)
+		return fmt.Errorf("error retrieving Volume AutoBackup %s: %v", d.Id(), err)
 	}
 
 	_ = d.Set("name", autobackup.Name)
@@ -74,10 +74,10 @@ func resourceVolumeAutoBackupRead(d *schema.ResourceData, meta interface{}) erro
 func resourceVolumeAutoBackupUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*CombinedConfig).goCMCClient()
 	id := d.Id()
-	schedule_time := d.Get("schedule_time").(string)
-	parts := strings.Split(schedule_time, ":")
+	scheduleTime := d.Get("schedule_time").(string)
+	parts := strings.Split(scheduleTime, ":")
 	if len(parts) != 2 {
-		return fmt.Errorf("Invalid schedule time [%s], correct format is HH:mm (24-h format), eg: 19:05", schedule_time)
+		return fmt.Errorf("invalid schedule time [%s], correct format is HH:mm (24-h format), eg: 19:05", scheduleTime)
 	}
 	hour := parts[0]
 	minute := parts[1]
@@ -92,7 +92,7 @@ func resourceVolumeAutoBackupUpdate(d *schema.ResourceData, meta interface{}) er
 			"incremental": d.Get("incremental").(bool),
 		})
 		if err != nil {
-			return fmt.Errorf("Error when update Volume AutoBackup [%s]: %v", id, err)
+			return fmt.Errorf("error when update Volume AutoBackup [%s]: %v", id, err)
 		}
 	}
 	return resourceVolumeAutoBackupRead(d, meta)
@@ -103,11 +103,11 @@ func resourceVolumeAutoBackupDelete(d *schema.ResourceData, meta interface{}) er
 	_, err := client.VolumeAutoBackup.Delete(d.Id())
 
 	if err != nil {
-		return fmt.Errorf("Error delete volume autobackup: %v", err)
+		return fmt.Errorf("error delete volume autobackup: %v", err)
 	}
 	_, err = waitUntilVolumeAutoBackupDeleted(d, meta)
 	if err != nil {
-		return fmt.Errorf("Error delete volume autobackup: %v", err)
+		return fmt.Errorf("error delete volume autobackup: %v", err)
 	}
 	return nil
 }

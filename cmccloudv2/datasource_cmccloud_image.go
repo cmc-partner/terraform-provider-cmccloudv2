@@ -51,12 +51,12 @@ func dataSourceImageRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*CombinedConfig).goCMCClient()
 
 	var allImages []gocmcapiv2.Image
-	if image_id := d.Get("image_id").(string); image_id != "" {
-		image, err := client.Image.Get(image_id)
+	if imageId := d.Get("image_id").(string); imageId != "" {
+		image, err := client.Image.Get(imageId)
 		if err != nil {
 			if errors.Is(err, gocmcapiv2.ErrNotFound) {
 				d.SetId("")
-				return fmt.Errorf("Unable to retrieve flavor [%s]: %s", image_id, err)
+				return fmt.Errorf("unable to retrieve flavor [%s]: %s", imageId, err)
 			}
 		}
 		allImages = append(allImages, image)
@@ -69,7 +69,7 @@ func dataSourceImageRead(d *schema.ResourceData, meta interface{}) error {
 		}
 		images, err := client.Image.List(params)
 		if err != nil {
-			return fmt.Errorf("Error when get images %v", err)
+			return fmt.Errorf("error when get images %v", err)
 		}
 		allImages = append(allImages, images...)
 	}
@@ -91,12 +91,12 @@ func dataSourceImageRead(d *schema.ResourceData, meta interface{}) error {
 		allImages = filteredImages
 	}
 	if len(allImages) < 1 {
-		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again")
+		return fmt.Errorf("your query returned no results. Please change your search criteria and try again")
 	}
 
 	if len(allImages) > 1 {
 		gocmcapiv2.Logo("[DEBUG] Multiple results found: %#v", allImages)
-		return fmt.Errorf("Your query returned more than one result. Please try a more specific search criteria")
+		return fmt.Errorf("your query returned more than one result. Please try a more specific search criteria")
 	}
 
 	return dataSourceComputeImageAttributes(d, allImages[0])
@@ -105,8 +105,9 @@ func dataSourceImageRead(d *schema.ResourceData, meta interface{}) error {
 func dataSourceComputeImageAttributes(d *schema.ResourceData, image gocmcapiv2.Image) error {
 	log.Printf("[DEBUG] Retrieved image %s: %#v", image.ID, image)
 	d.SetId(image.ID)
-	d.Set("name", image.Name)
-	d.Set("os", image.Os)
-	d.Set("image_id", image.ID)
-	return nil
+	return errors.Join(
+		d.Set("name", image.Name),
+		d.Set("os", image.Os),
+		d.Set("image_id", image.ID),
+	)
 }

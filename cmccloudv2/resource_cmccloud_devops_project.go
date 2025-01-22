@@ -59,7 +59,7 @@ func resourceDevopsProjectCreate(d *schema.ResourceData, meta interface{}) error
 		"name": d.Get("name").(string),
 	})
 	if err != nil {
-		return fmt.Errorf("Error creating Devops Project : %s", err)
+		return fmt.Errorf("error creating Devops Project : %s", err)
 	}
 	d.SetId(strconv.Itoa(devopsproject.ID))
 	return resourceDevopsProjectRead(d, meta)
@@ -68,7 +68,7 @@ func resourceDevopsProjectCreate(d *schema.ResourceData, meta interface{}) error
 func resourceDevopsProjectRead(d *schema.ResourceData, meta interface{}) error {
 	devopsproject, err := getClient(meta).DevopsProject.Get(d.Id())
 	if err != nil {
-		return fmt.Errorf("Error retrieving Devops Project %s: %v", d.Id(), err)
+		return fmt.Errorf("error retrieving Devops Project %s: %v", d.Id(), err)
 	}
 
 	_ = d.Set("name", devopsproject.Name)

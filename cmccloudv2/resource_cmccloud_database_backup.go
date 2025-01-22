@@ -33,12 +33,12 @@ func resourceDatabaseBackupCreate(d *schema.ResourceData, meta interface{}) erro
 		"incremental": d.Get("incremental").(bool),
 	})
 	if err != nil {
-		return fmt.Errorf("Error creating backup of database instance [%s]: %v", d.Get("instance_id").(string), err)
+		return fmt.Errorf("error creating backup of database instance [%s]: %v", d.Get("instance_id").(string), err)
 	}
 	d.SetId(backup.ID)
 	_, err = waitUntilDatabaseBackupStatusChangedState(d, meta, []string{"avaiable"}, []string{"error"})
 	if err != nil {
-		return fmt.Errorf("Error creating backup of database instance [%s]: %v", d.Get("instance_id").(string), err)
+		return fmt.Errorf("error creating backup of database instance [%s]: %v", d.Get("instance_id").(string), err)
 	}
 	return resourceDatabaseBackupRead(d, meta)
 }
@@ -47,7 +47,7 @@ func resourceDatabaseBackupRead(d *schema.ResourceData, meta interface{}) error 
 	client := meta.(*CombinedConfig).goCMCClient()
 	backup, err := client.DatabaseBackup.Get(d.Id())
 	if err != nil {
-		return fmt.Errorf("Error retrieving database instance backup %s: %v", d.Id(), err)
+		return fmt.Errorf("error retrieving database instance backup %s: %v", d.Id(), err)
 	}
 
 	_ = d.Set("name", backup.Name)
@@ -73,7 +73,7 @@ func resourceDatabaseBackupUpdate(d *schema.ResourceData, meta interface{}) erro
 			"name": d.Get("name").(string),
 		})
 		if err != nil {
-			return fmt.Errorf("Error when rename database instance backup [%s]: %v", id, err)
+			return fmt.Errorf("error when rename database instance backup [%s]: %v", id, err)
 		}
 	}
 	return resourceDatabaseBackupRead(d, meta)
@@ -84,11 +84,11 @@ func resourceDatabaseBackupDelete(d *schema.ResourceData, meta interface{}) erro
 	_, err := client.Backup.Delete(d.Id())
 
 	if err != nil {
-		return fmt.Errorf("Error delete database instance backup [%s]: %v", d.Id(), err)
+		return fmt.Errorf("error delete database instance backup [%s]: %v", d.Id(), err)
 	}
 	_, err = waitUntilDatabaseBackupDeleted(d, meta)
 	if err != nil {
-		return fmt.Errorf("Error delete database instance backup [%s]: %v", d.Id(), err)
+		return fmt.Errorf("error delete database instance backup [%s]: %v", d.Id(), err)
 	}
 	return nil
 }

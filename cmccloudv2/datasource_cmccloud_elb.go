@@ -1,6 +1,7 @@
 package cmccloudv2
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/cmc-cloud/gocmcapiv2"
@@ -44,17 +45,17 @@ func dataSourceELBRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*CombinedConfig).goCMCClient()
 
 	var allELBs []gocmcapiv2.ELB
-	if elb_id := d.Get("elb_id").(string); elb_id != "" {
-		elb, err := client.ELB.Get(elb_id)
+	if elbId := d.Get("elb_id").(string); elbId != "" {
+		elb, err := client.ELB.Get(elbId)
 		if err != nil {
-			return fmt.Errorf("Unable to retrieve elb [%s]: %s", elb_id, err)
+			return fmt.Errorf("unable to retrieve elb [%s]: %s", elbId, err)
 		}
 		allELBs = append(allELBs, elb)
 	} else {
 		params := map[string]string{}
 		elbs, err := client.ELB.List(params)
 		if err != nil {
-			return fmt.Errorf("Error when get elbs %v", err)
+			return fmt.Errorf("error when get elbs %v", err)
 		}
 		allELBs = append(allELBs, elbs...)
 	}
@@ -76,12 +77,12 @@ func dataSourceELBRead(d *schema.ResourceData, meta interface{}) error {
 		allELBs = filteredELBs
 	}
 	if len(allELBs) < 1 {
-		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again")
+		return fmt.Errorf("your query returned no results. Please change your search criteria and try again")
 	}
 
 	if len(allELBs) > 1 {
 		gocmcapiv2.Logo("[DEBUG] Multiple results found: %#v", allELBs)
-		return fmt.Errorf("Your query returned more than one result. Please try a more specific search criteria")
+		return fmt.Errorf("your query returned more than one result. Please try a more specific search criteria")
 	}
 
 	return dataSourceComputeELBAttributes(d, allELBs[0])
@@ -89,8 +90,9 @@ func dataSourceELBRead(d *schema.ResourceData, meta interface{}) error {
 
 func dataSourceComputeELBAttributes(d *schema.ResourceData, elb gocmcapiv2.ELB) error {
 	d.SetId(elb.ID)
-	d.Set("ip_address", elb.VipAddress)
-	d.Set("name", elb.Name)
-	d.Set("created_at", elb.CreatedAt)
-	return nil
+	return errors.Join(
+		d.Set("ip_address", elb.VipAddress),
+		d.Set("name", elb.Name),
+		d.Set("created_at", elb.CreatedAt),
+	)
 }

@@ -64,12 +64,12 @@ func dataSourceVolumeSnapshotRead(d *schema.ResourceData, meta interface{}) erro
 	client := meta.(*CombinedConfig).goCMCClient()
 
 	var allSnapshots []gocmcapiv2.Snapshot
-	if snapshot_id := d.Get("snapshot_id").(string); snapshot_id != "" {
-		volume, err := client.Snapshot.Get(snapshot_id)
+	if snapshotId := d.Get("snapshot_id").(string); snapshotId != "" {
+		volume, err := client.Snapshot.Get(snapshotId)
 		if err != nil {
 			if errors.Is(err, gocmcapiv2.ErrNotFound) {
 				d.SetId("")
-				return fmt.Errorf("Unable to retrieve volume [%s]: %s", snapshot_id, err)
+				return fmt.Errorf("unable to retrieve volume [%s]: %s", snapshotId, err)
 			}
 		}
 		allSnapshots = append(allSnapshots, volume)
@@ -81,7 +81,7 @@ func dataSourceVolumeSnapshotRead(d *schema.ResourceData, meta interface{}) erro
 		}
 		snapshots, err := client.Snapshot.List(params)
 		if err != nil {
-			return fmt.Errorf("Error when get snapshots %v", err)
+			return fmt.Errorf("error when get snapshots %v", err)
 		}
 		allSnapshots = append(allSnapshots, snapshots...)
 	}
@@ -104,20 +104,20 @@ func dataSourceVolumeSnapshotRead(d *schema.ResourceData, meta interface{}) erro
 		allSnapshots = filteredSnapshots
 	}
 	if len(allSnapshots) < 1 {
-		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again")
+		return fmt.Errorf("your query returned no results. Please change your search criteria and try again")
 	}
 
 	if len(allSnapshots) > 1 {
 		gocmcapiv2.Logo("[DEBUG] Multiple results found: %#v", allSnapshots)
 
-		if v, ok := d.GetOkExists("is_latest"); ok {
+		if v, ok := d.GetOk("is_latest"); ok {
 			if v.(bool) {
 				// lay ban snapshot dau tien vi snapshot duoc list theo thu tu tao gan nhat truoc
 				return dataSourceComputeVolumeSnapshotAttributes(d, allSnapshots[0])
 			}
 		}
 
-		return fmt.Errorf("Your query returned more than one result. Please try a more specific search criteria")
+		return fmt.Errorf("your query returned more than one result. Please try a more specific search criteria")
 	}
 
 	return dataSourceComputeVolumeSnapshotAttributes(d, allSnapshots[0])
@@ -126,10 +126,11 @@ func dataSourceVolumeSnapshotRead(d *schema.ResourceData, meta interface{}) erro
 func dataSourceComputeVolumeSnapshotAttributes(d *schema.ResourceData, snapshot gocmcapiv2.Snapshot) error {
 	log.Printf("[DEBUG] Retrieved volume %s: %#v", snapshot.ID, snapshot)
 	d.SetId(snapshot.ID)
-	d.Set("name", snapshot.Name)
-	d.Set("status", snapshot.Status)
-	d.Set("volume_id", snapshot.VolumeID)
-	d.Set("real_size_gb", snapshot.RealSizeGB)
-	d.Set("created_at", snapshot.CreatedAt)
-	return nil
+	return errors.Join(
+		d.Set("name", snapshot.Name),
+		d.Set("status", snapshot.Status),
+		d.Set("volume_id", snapshot.VolumeID),
+		d.Set("real_size_gb", snapshot.RealSizeGB),
+		d.Set("created_at", snapshot.CreatedAt),
+	)
 }

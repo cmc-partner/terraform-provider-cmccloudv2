@@ -58,16 +58,16 @@ func dataSourceVolumeTypeDatabaseRead(d *schema.ResourceData, meta interface{}) 
 	return dataSourceVolumeTypeRead(d, meta, true)
 }
 
-func dataSourceVolumeTypeRead(d *schema.ResourceData, meta interface{}, for_database bool) error {
+func dataSourceVolumeTypeRead(d *schema.ResourceData, meta interface{}, forDatabase bool) error {
 	client := meta.(*CombinedConfig).goCMCClient()
 
 	var allVolumeTypes []gocmcapiv2.VolumeType
-	if volume_type_id := d.Get("volume_type_id").(string); volume_type_id != "" {
-		volumetype, err := client.VolumeType.Get(volume_type_id)
+	if volumeTypeId := d.Get("volume_type_id").(string); volumeTypeId != "" {
+		volumetype, err := client.VolumeType.Get(volumeTypeId)
 		if err != nil {
 			if errors.Is(err, gocmcapiv2.ErrNotFound) {
 				d.SetId("")
-				return fmt.Errorf("Unable to retrieve volume type [%s]: %s", volume_type_id, err)
+				return fmt.Errorf("unable to retrieve volume type [%s]: %s", volumeTypeId, err)
 			}
 		}
 		allVolumeTypes = append(allVolumeTypes, volumetype)
@@ -75,7 +75,7 @@ func dataSourceVolumeTypeRead(d *schema.ResourceData, meta interface{}, for_data
 		params := map[string]string{}
 		volumetypes, err := client.VolumeType.List(params)
 		if err != nil {
-			return fmt.Errorf("Error when get volume types %v", err)
+			return fmt.Errorf("error when get volume types %v", err)
 		}
 		allVolumeTypes = append(allVolumeTypes, volumetypes...)
 	}
@@ -87,21 +87,21 @@ func dataSourceVolumeTypeRead(d *schema.ResourceData, meta interface{}, for_data
 					continue
 				}
 			}
-			is_multi_attach := d.Get("multi_attach").(bool)
+			isMultiAttach := d.Get("multi_attach").(bool)
 			// volume type cho database => ko hien thi cac loai khac
-			if for_database && !strings.Contains(volumetype.Name, "database") {
+			if forDatabase && !strings.Contains(volumetype.Name, "database") {
 				continue
 			}
 			// volume type cho ec => ko hien thi volume type cho database
-			if !for_database && strings.Contains(volumetype.Name, "database") {
+			if !forDatabase && strings.Contains(volumetype.Name, "database") {
 				continue
 			}
 			// neu la multi attach => filter nhung loai co name chua attach
-			if is_multi_attach && !strings.Contains(volumetype.Name, "attach") {
+			if isMultiAttach && !strings.Contains(volumetype.Name, "attach") {
 				continue
 			}
 			// neu la ko multi attach => bo di nhung loai co name chua attach
-			if !is_multi_attach && strings.Contains(volumetype.Name, "attach") {
+			if !isMultiAttach && strings.Contains(volumetype.Name, "attach") {
 				continue
 			}
 			filteredVolumeTypes = append(filteredVolumeTypes, volumetype)
@@ -109,12 +109,12 @@ func dataSourceVolumeTypeRead(d *schema.ResourceData, meta interface{}, for_data
 		allVolumeTypes = filteredVolumeTypes
 	}
 	if len(allVolumeTypes) < 1 {
-		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again")
+		return fmt.Errorf("your query returned no results. Please change your search criteria and try again")
 	}
 
 	if len(allVolumeTypes) > 1 {
 		gocmcapiv2.Logo("[DEBUG] Multiple results found: %#v", allVolumeTypes)
-		return fmt.Errorf("Your query returned more than one result. Please try a more specific search criteria")
+		return fmt.Errorf("your query returned more than one result. Please try a more specific search criteria")
 	}
 
 	return dataSourceComputeVolumeTypeAttributes(d, allVolumeTypes[0])
@@ -123,7 +123,8 @@ func dataSourceVolumeTypeRead(d *schema.ResourceData, meta interface{}, for_data
 func dataSourceComputeVolumeTypeAttributes(d *schema.ResourceData, volumetype gocmcapiv2.VolumeType) error {
 	log.Printf("[DEBUG] Retrieved volumetype %s: %#v", volumetype.ID, volumetype)
 	d.SetId(volumetype.ID)
-	d.Set("name", volumetype.Name)
-	d.Set("description", volumetype.Description)
-	return nil
+	return errors.Join(
+		d.Set("name", volumetype.Name),
+		d.Set("description", volumetype.Description),
+	)
 }

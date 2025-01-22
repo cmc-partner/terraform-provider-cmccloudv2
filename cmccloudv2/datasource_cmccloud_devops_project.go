@@ -56,12 +56,12 @@ func dataSourceDevopsProjectRead(d *schema.ResourceData, meta interface{}) error
 	client := meta.(*CombinedConfig).goCMCClient()
 
 	var allDevopsProjects []gocmcapiv2.DevopsProject
-	if project_id := d.Get("devops_project_id").(int); project_id != 0 {
-		project, err := client.DevopsProject.Get(strconv.Itoa(project_id))
+	if projectId := d.Get("devops_project_id").(int); projectId != 0 {
+		project, err := client.DevopsProject.Get(strconv.Itoa(projectId))
 		if err != nil {
 			if errors.Is(err, gocmcapiv2.ErrNotFound) {
 				d.SetId("")
-				return fmt.Errorf("Unable to retrieve devops project [%s]: %s", project_id, err)
+				return fmt.Errorf("unable to retrieve devops project [%d]: %s", projectId, err)
 			}
 		}
 		allDevopsProjects = append(allDevopsProjects, project)
@@ -74,7 +74,7 @@ func dataSourceDevopsProjectRead(d *schema.ResourceData, meta interface{}) error
 		}
 		projects, err := client.DevopsProject.List(params)
 		if err != nil {
-			return fmt.Errorf("Error when get devops project %v", err)
+			return fmt.Errorf("error when get devops project %v", err)
 		}
 		allDevopsProjects = append(allDevopsProjects, projects...)
 	}
@@ -96,22 +96,23 @@ func dataSourceDevopsProjectRead(d *schema.ResourceData, meta interface{}) error
 		allDevopsProjects = filteredDevopsProjects
 	}
 	if len(allDevopsProjects) < 1 {
-		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again")
+		return fmt.Errorf("your query returned no results. Please change your search criteria and try again")
 	}
 
 	if len(allDevopsProjects) > 1 {
 		gocmcapiv2.Logo("[DEBUG] Multiple results found: %#v", allDevopsProjects)
-		return fmt.Errorf("Your query returned more than one result. Please try a more specific search criteria")
+		return fmt.Errorf("your query returned more than one result. Please try a more specific search criteria")
 	}
 
 	return dataSourceComputeDevopsProjectAttributes(d, allDevopsProjects[0])
 }
 
 func dataSourceComputeDevopsProjectAttributes(d *schema.ResourceData, project gocmcapiv2.DevopsProject) error {
-	log.Printf("[DEBUG] Retrieved devops project %s: %#v", project.ID, project)
+	log.Printf("[DEBUG] Retrieved devops project %d: %#v", project.ID, project)
 	d.SetId(strconv.Itoa(project.ID))
-	d.Set("name", project.Name)
-	d.Set("description", project.Description)
-	d.Set("created_at", project.CreatedAt)
-	return nil
+	return errors.Join(
+		d.Set("name", project.Name),
+		d.Set("description", project.Description),
+		d.Set("created_at", project.CreatedAt),
+	)
 }

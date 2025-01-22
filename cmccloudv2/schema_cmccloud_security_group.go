@@ -3,10 +3,9 @@ package cmccloudv2
 import (
 	"bytes"
 	"fmt"
-
-	"github.com/hashicorp/terraform-plugin-sdk/helper/hashcode"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"hash/crc32"
 )
 
 func securityGroupRuleSchema() map[string]*schema.Schema {
@@ -126,5 +125,5 @@ func computeSecGroupV2RuleHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["ether_type"].(string)))
 
 	// gocmcapiv2.Logs("hash = " + buf.String())
-	return hashcode.String(buf.String())
+	return int(crc32.ChecksumIEEE(buf.Bytes()))
 }

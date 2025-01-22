@@ -43,12 +43,12 @@ func dataSourceSecurityGroupRead(d *schema.ResourceData, meta interface{}) error
 	client := meta.(*CombinedConfig).goCMCClient()
 
 	var allSecurityGroups []gocmcapiv2.SecurityGroup
-	if security_group_id := d.Get("security_group_id").(string); security_group_id != "" {
-		ecsgroup, err := client.SecurityGroup.Get(security_group_id)
+	if securityGroupId := d.Get("security_group_id").(string); securityGroupId != "" {
+		ecsgroup, err := client.SecurityGroup.Get(securityGroupId)
 		if err != nil {
 			if errors.Is(err, gocmcapiv2.ErrNotFound) {
 				d.SetId("")
-				return fmt.Errorf("Unable to retrieve security group [%s]: %s", security_group_id, err)
+				return fmt.Errorf("unable to retrieve security group [%s]: %s", securityGroupId, err)
 			}
 		}
 		allSecurityGroups = append(allSecurityGroups, ecsgroup)
@@ -59,7 +59,7 @@ func dataSourceSecurityGroupRead(d *schema.ResourceData, meta interface{}) error
 		}
 		ecsgroups, err := client.SecurityGroup.List(params)
 		if err != nil {
-			return fmt.Errorf("Error when get security groups %v", err)
+			return fmt.Errorf("error when get security groups %v", err)
 		}
 		allSecurityGroups = append(allSecurityGroups, ecsgroups...)
 	}
@@ -81,12 +81,12 @@ func dataSourceSecurityGroupRead(d *schema.ResourceData, meta interface{}) error
 		allSecurityGroups = filteredSecurityGroups
 	}
 	if len(allSecurityGroups) < 1 {
-		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again")
+		return fmt.Errorf("your query returned no results. Please change your search criteria and try again")
 	}
 
 	if len(allSecurityGroups) > 1 {
 		gocmcapiv2.Logo("[DEBUG] Multiple results found: %#v", allSecurityGroups)
-		return fmt.Errorf("Your query returned more than one result. Please try a more specific search criteria")
+		return fmt.Errorf("your query returned more than one result. Please try a more specific search criteria")
 	}
 
 	return dataSourceComputeSecurityGroupAttributes(d, allSecurityGroups[0])
@@ -95,8 +95,9 @@ func dataSourceSecurityGroupRead(d *schema.ResourceData, meta interface{}) error
 func dataSourceComputeSecurityGroupAttributes(d *schema.ResourceData, ecsgroup gocmcapiv2.SecurityGroup) error {
 	log.Printf("[DEBUG] Retrieved ecsgroup %s: %#v", ecsgroup.ID, ecsgroup)
 	d.SetId(ecsgroup.ID)
-	d.Set("name", ecsgroup.Name)
-	d.Set("description", ecsgroup.Description)
-	d.Set("security_group_id", ecsgroup.ID)
-	return nil
+	return errors.Join(
+		d.Set("name", ecsgroup.Name),
+		d.Set("description", ecsgroup.Description),
+		d.Set("security_group_id", ecsgroup.ID),
+	)
 }

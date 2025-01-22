@@ -25,14 +25,14 @@ func resourceKubernetesv2() *schema.Resource {
 		SchemaVersion: 1,
 		Schema:        kubernetesv2Schema(),
 		CustomizeDiff: func(diff *schema.ResourceDiff, v interface{}) error {
-			enable_autoscale := diff.Get("enable_autoscale").(bool)
-			if enable_autoscale {
+			enableAutoscale := diff.Get("enable_autoscale").(bool)
+			if enableAutoscale {
 				if !isSet(diff, "autoscale_max_node") || !isSet(diff, "autoscale_max_ram_gb") || !isSet(diff, "autoscale_max_core") {
-					return fmt.Errorf("When `enable_autoscale` is 'true', `autoscale_max_node, autoscale_max_ram_gb, autoscale_max_core must be set")
+					return fmt.Errorf("when `enable_autoscale` is 'true', `autoscale_max_node, autoscale_max_ram_gb, autoscale_max_core must be set")
 				}
 			} else {
 				if isSet(diff, "autoscale_max_node") || isSet(diff, "autoscale_max_ram_gb") || isSet(diff, "autoscale_max_core") {
-					return fmt.Errorf("When `enable_autoscale` is 'false', `autoscale_max_node, autoscale_max_ram_gb, autoscale_max_core must not be set")
+					return fmt.Errorf("when `enable_autoscale` is 'false', `autoscale_max_node, autoscale_max_ram_gb, autoscale_max_core must not be set")
 				}
 			}
 			return nil
@@ -44,7 +44,7 @@ func resourceKubernetesv2Create(d *schema.ResourceData, meta interface{}) error 
 	client := meta.(*CombinedConfig).goCMCClient()
 	subnet, err := client.Subnet.Get(d.Get("subnet_id").(string))
 	if err != nil {
-		return fmt.Errorf("Error receving subnet with id = %s: %v", d.Get("subnet_id").(string), err)
+		return fmt.Errorf("error receving subnet with id = %s: %v", d.Get("subnet_id").(string), err)
 	}
 	kubernetes, err := client.Kubernetesv2.Create(map[string]interface{}{
 		"region":         client.Configs.RegionId,
@@ -67,13 +67,13 @@ func resourceKubernetesv2Create(d *schema.ResourceData, meta interface{}) error 
 	})
 
 	if err != nil {
-		return fmt.Errorf("Error creating Kubernetesv2: %s", err)
+		return fmt.Errorf("error creating Kubernetesv2: %s", err)
 	}
 	d.SetId(kubernetes.Data.ID)
 
 	_, err = waitUntilKubernetesv2StatusChangedState(d, meta, []string{"HEALTHY", "RUNNING", "active", "Ready", "Running"}, []string{"ERROR", "SHUTDOWN", "FAILURE", "failure", "deleting"}, d.Timeout(schema.TimeoutCreate))
 	if err != nil {
-		return fmt.Errorf("Error creating Kubernetesv2: %s", err)
+		return fmt.Errorf("error creating Kubernetesv2: %s", err)
 	}
 	if d.Get("enable_autohealing").(bool) {
 		err := updateAutoHealingAddon(d, meta)
@@ -101,7 +101,7 @@ func resourceKubernetesv2Read(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*CombinedConfig).goCMCClient()
 	kubernetes, err := client.Kubernetesv2.Get(d.Id())
 	if err != nil {
-		return fmt.Errorf("Error retrieving Kubernetesv2 %s: %v", d.Id(), err)
+		return fmt.Errorf("error retrieving Kubernetesv2 %s: %v", d.Id(), err)
 	}
 
 	_ = d.Set("id", kubernetes.ClusterID)
@@ -117,6 +117,9 @@ func resourceKubernetesv2Read(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("state", kubernetes.State)
 
 	status, err := client.Kubernetesv2.GetStatus(d.Id())
+	if err != nil {
+		return err
+	}
 	_ = d.Set("enable_autohealing", status.EnableAutoHealing)
 	_ = d.Set("enable_autoscale", status.EnableAutoScale)
 	_ = d.Set("enable_monitoring", status.EnableMonitor)
@@ -136,10 +139,13 @@ func updateAutoHealingAddon(d *schema.ResourceData, meta interface{}) error {
 		"action":                action,
 		"externalProviderNames": "auto-healing-control-plane",
 	}
-	getClient(meta).Kubernetesv2.UpdateAddon(d.Id(), params)
+	if _, err := getClient(meta).Kubernetesv2.UpdateAddon(d.Id(), params); err != nil {
+		return fmt.Errorf("error update auto healing addon: %v", err)
+	}
+
 	_, err := waitUntilKubernetesv2StatusChangedStateReady(d, meta, d.Timeout(schema.TimeoutCreate))
 	if err != nil {
-		return fmt.Errorf("Error update auto healing addon: %v", err)
+		return fmt.Errorf("error update auto healing addon: %v", err)
 	}
 	return nil
 }
@@ -159,10 +165,12 @@ func updateAutoScaleAddon(d *schema.ResourceData, meta interface{}) error {
 		// "minCoreCluster":        d.Get("autoscale_min_core").(int),
 		"maxCoreCluster": d.Get("autoscale_max_core").(int),
 	}
-	getClient(meta).Kubernetesv2.UpdateAddon(d.Id(), params)
+	if _, err := getClient(meta).Kubernetesv2.UpdateAddon(d.Id(), params); err != nil {
+		return fmt.Errorf("error update autoscale addon: %v", err)
+	}
 	_, err := waitUntilKubernetesv2StatusChangedStateReady(d, meta, d.Timeout(schema.TimeoutCreate))
 	if err != nil {
-		return fmt.Errorf("Error update autoscale addon: %v", err)
+		return fmt.Errorf("error update autoscale addon: %v", err)
 	}
 	return nil
 }
@@ -176,10 +184,12 @@ func updateMonitoringAddon(d *schema.ResourceData, meta interface{}) error {
 		"action":                action,
 		"externalProviderNames": "monitoring",
 	}
-	getClient(meta).Kubernetesv2.UpdateAddon(d.Id(), params)
+	if _, err := getClient(meta).Kubernetesv2.UpdateAddon(d.Id(), params); err != nil {
+		return fmt.Errorf("error update monitoring addon: %v", err)
+	}
 	_, err := waitUntilKubernetesv2StatusChangedStateReady(d, meta, d.Timeout(schema.TimeoutCreate))
 	if err != nil {
-		return fmt.Errorf("Error update monitoring addon: %v", err)
+		return fmt.Errorf("error update monitoring addon: %v", err)
 	}
 	return nil
 }
@@ -211,11 +221,11 @@ func resourceKubernetesv2Delete(d *schema.ResourceData, meta interface{}) error 
 	_, err := client.Kubernetesv2.Delete(d.Id())
 
 	if err != nil {
-		return fmt.Errorf("Error delete kubernetes [%s]: %v", d.Id(), err)
+		return fmt.Errorf("error delete kubernetes [%s]: %v", d.Id(), err)
 	}
 	_, err = waitUntilKubernetesv2Deleted(d, meta)
 	if err != nil {
-		return fmt.Errorf("Error delete kubernetes [%s]: %v", d.Id(), err)
+		return fmt.Errorf("error delete kubernetes [%s]: %v", d.Id(), err)
 	}
 	return nil
 }

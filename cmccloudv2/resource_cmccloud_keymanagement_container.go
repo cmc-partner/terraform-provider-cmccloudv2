@@ -36,7 +36,7 @@ func resourceKeyManagementContainerCreate(d *schema.ResourceData, meta interface
 		"type": "generic", // d.Get("type").(string),
 	})
 	if err != nil {
-		return fmt.Errorf("Error creating KeyManagementContainer: %s", err)
+		return fmt.Errorf("error creating KeyManagementContainer: %s", err)
 	}
 	d.SetId(container.Data.ID)
 	return resourceKeyManagementContainerRead(d, meta)
@@ -45,7 +45,7 @@ func resourceKeyManagementContainerCreate(d *schema.ResourceData, meta interface
 func resourceKeyManagementContainerRead(d *schema.ResourceData, meta interface{}) error {
 	container, err := getClient(meta).KeyManagement.Get(d.Id())
 	if err != nil {
-		return fmt.Errorf("Error retrieving KeyManagement Container %s: %v", d.Id(), err)
+		return fmt.Errorf("error retrieving KeyManagement Container %s: %v", d.Id(), err)
 	}
 
 	_ = d.Set("name", container.Name)
@@ -57,7 +57,7 @@ func resourceKeyManagementContainerRead(d *schema.ResourceData, meta interface{}
 func resourceKeyManagementContainerDelete(d *schema.ResourceData, meta interface{}) error {
 	_, err := getClient(meta).KeyManagement.Delete(d.Id())
 	if err != nil {
-		return fmt.Errorf("Error delete KeyManagement Container: %v", err)
+		return fmt.Errorf("error delete KeyManagement Container: %v", err)
 	}
 	return nil
 }

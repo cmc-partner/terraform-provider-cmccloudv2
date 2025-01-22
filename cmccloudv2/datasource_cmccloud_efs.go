@@ -81,12 +81,12 @@ func dataSourceEFSRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*CombinedConfig).goCMCClient()
 
 	var allEFSs []gocmcapiv2.EFS
-	if efs_id := d.Get("efs_id").(string); efs_id != "" {
-		efs, err := client.EFS.Get(efs_id)
+	if efsId := d.Get("efs_id").(string); efsId != "" {
+		efs, err := client.EFS.Get(efsId)
 		if err != nil {
 			if errors.Is(err, gocmcapiv2.ErrNotFound) {
 				d.SetId("")
-				return fmt.Errorf("Unable to retrieve efs [%s]: %s", efs_id, err)
+				return fmt.Errorf("unable to retrieve efs [%s]: %s", efsId, err)
 			}
 		}
 		allEFSs = append(allEFSs, efs)
@@ -94,7 +94,7 @@ func dataSourceEFSRead(d *schema.ResourceData, meta interface{}) error {
 		params := map[string]string{}
 		efss, err := client.EFS.List(params)
 		if err != nil {
-			return fmt.Errorf("Error when get efses %v", err)
+			return fmt.Errorf("error when get efses %v", err)
 		}
 		allEFSs = append(allEFSs, efss...)
 	}
@@ -131,12 +131,12 @@ func dataSourceEFSRead(d *schema.ResourceData, meta interface{}) error {
 		allEFSs = filteredEFSs
 	}
 	if len(allEFSs) < 1 {
-		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again")
+		return fmt.Errorf("your query returned no results. Please change your search criteria and try again")
 	}
 
 	if len(allEFSs) > 1 {
 		gocmcapiv2.Logo("[DEBUG] Multiple results found: %#v", allEFSs)
-		return fmt.Errorf("Your query returned more than one result. Please try a more specific search criteria")
+		return fmt.Errorf("your query returned more than one result. Please try a more specific search criteria")
 	}
 
 	return dataSourceComputeEFSAttributes(d, allEFSs[0])
@@ -145,16 +145,17 @@ func dataSourceEFSRead(d *schema.ResourceData, meta interface{}) error {
 func dataSourceComputeEFSAttributes(d *schema.ResourceData, efs gocmcapiv2.EFS) error {
 	log.Printf("[DEBUG] Retrieved efs %s: %#v", efs.ID, efs)
 	d.SetId(efs.ID)
-	d.Set("name", efs.Name)
-	d.Set("type", efs.Type)
-	d.Set("status", efs.Status)
-	d.Set("capacity", efs.Capacity)
-	d.Set("protocol_type", efs.ProtocolType)
-	d.Set("vpc_id", efs.VpcID)
-	d.Set("subnet_id", efs.SubnetID)
-	d.Set("created_at", efs.CreatedAt)
-	d.Set("endpoint", efs.Endpoint)
-	d.Set("shared_path", efs.SharedPath)
-	d.Set("command_line", efs.CommandLine)
-	return nil
+	return errors.Join(
+		d.Set("name", efs.Name),
+		d.Set("type", efs.Type),
+		d.Set("status", efs.Status),
+		d.Set("capacity", efs.Capacity),
+		d.Set("protocol_type", efs.ProtocolType),
+		d.Set("vpc_id", efs.VpcID),
+		d.Set("subnet_id", efs.SubnetID),
+		d.Set("created_at", efs.CreatedAt),
+		d.Set("endpoint", efs.Endpoint),
+		d.Set("shared_path", efs.SharedPath),
+		d.Set("command_line", efs.CommandLine),
+	)
 }

@@ -46,14 +46,14 @@ func datasourceContainerRegistryRepository() *schema.Resource {
 func dataSourceContainerRegistryRepositoryRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*CombinedConfig).goCMCClient()
 
-	project_id := d.Get("devops_project_id").(string)
+	projectId := d.Get("devops_project_id").(string)
 	var allContainerRegistryRepositorys []gocmcapiv2.ContainerRegistryRepository
-	if registry_id := d.Get("container_registry_id").(string); registry_id != "" {
-		registry, err := client.ContainerRegistry.Get(project_id, registry_id)
+	if registryId := d.Get("container_registry_id").(string); registryId != "" {
+		registry, err := client.ContainerRegistry.Get(projectId, registryId)
 		if err != nil {
 			if errors.Is(err, gocmcapiv2.ErrNotFound) {
 				d.SetId("")
-				return fmt.Errorf("Unable to retrieve container registry [%s]: %s", registry_id, err)
+				return fmt.Errorf("unable to retrieve container registry [%s]: %s", registryId, err)
 			}
 		}
 		allContainerRegistryRepositorys = append(allContainerRegistryRepositorys, registry)
@@ -63,9 +63,9 @@ func dataSourceContainerRegistryRepositoryRead(d *schema.ResourceData, meta inte
 			"page": "1",
 			"size": "1000",
 		}
-		registrys, err := client.ContainerRegistry.List(project_id, params)
+		registrys, err := client.ContainerRegistry.List(projectId, params)
 		if err != nil {
-			return fmt.Errorf("Error when get container registry %v", err)
+			return fmt.Errorf("error when get container registry %v", err)
 		}
 		allContainerRegistryRepositorys = append(allContainerRegistryRepositorys, registrys...)
 	}
@@ -82,23 +82,24 @@ func dataSourceContainerRegistryRepositoryRead(d *schema.ResourceData, meta inte
 		allContainerRegistryRepositorys = filteredContainerRegistryRepositorys
 	}
 	if len(allContainerRegistryRepositorys) < 1 {
-		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again")
+		return fmt.Errorf("your query returned no results. Please change your search criteria and try again")
 	}
 
 	if len(allContainerRegistryRepositorys) > 1 {
 		gocmcapiv2.Logo("[DEBUG] Multiple results found: %#v", allContainerRegistryRepositorys)
-		return fmt.Errorf("Your query returned more than one result. Please try a more specific search criteria")
+		return fmt.Errorf("your query returned more than one result. Please try a more specific search criteria")
 	}
 
 	return dataSourceComputeContainerRegistryRepositoryAttributes(d, allContainerRegistryRepositorys[0])
 }
 
 func dataSourceComputeContainerRegistryRepositoryAttributes(d *schema.ResourceData, registry gocmcapiv2.ContainerRegistryRepository) error {
-	log.Printf("[DEBUG] Retrieved container registry %s: %#v", registry.ID, registry)
+	log.Printf("[DEBUG] Retrieved container registry %d: %#v", registry.ID, registry)
 	d.SetId(strconv.Itoa(registry.ID))
-	d.Set("name", registry.Name)
-	d.Set("uri", registry.URI)
-	d.Set("project_id", registry.ProjectId)
-	d.Set("created_at", registry.CreatedAt)
-	return nil
+	return errors.Join(
+		d.Set("name", registry.Name),
+		d.Set("uri", registry.URI),
+		d.Set("project_id", registry.ProjectId),
+		d.Set("created_at", registry.CreatedAt),
+	)
 }

@@ -44,7 +44,9 @@ func ignoreChangesCustomizeDiff(fieldsToIgnore ...string) schema.CustomizeDiffFu
 	return func(diff *schema.ResourceDiff, v interface{}) error {
 		for _, field := range fieldsToIgnore {
 			if diff.HasChange(field) {
-				diff.Clear(field)
+				if err := diff.Clear(field); err != nil {
+					return fmt.Errorf("error clearing field %s: %s", field, err)
+				}
 			}
 		}
 		return nil
@@ -100,8 +102,8 @@ func ensureField2RequiredWhenField1True(field1, field2 string) schema.CustomizeD
 	}
 }
 func validateBillingMode(v interface{}, key string) (warnings []string, errors []error) {
-	biling_mode := v.(string)
-	if biling_mode != "monthly" && biling_mode != "hourly" {
+	bilingMode := v.(string)
+	if bilingMode != "monthly" && bilingMode != "hourly" {
 		return nil, []error{fmt.Errorf("%s must be one of two values: `monthly` or `hourly`", key)}
 	}
 	return nil, nil
@@ -227,7 +229,7 @@ func validateEmpty(val interface{}, key string) (warns []string, errs []error) {
 	}
 	return
 }
-func validateAny(error_message string, validators ...schema.SchemaValidateFunc) schema.SchemaValidateFunc {
+func validateAny(errorMessage string, validators ...schema.SchemaValidateFunc) schema.SchemaValidateFunc {
 	return func(val interface{}, key string) (warns []string, errs []error) {
 		for _, validator := range validators {
 			_, e := validator(val, key)
@@ -237,7 +239,7 @@ func validateAny(error_message string, validators ...schema.SchemaValidateFunc) 
 			}
 		}
 		// If all validation functions fail, return the errors from the last validation
-		errs = append(errs, fmt.Errorf("%q "+error_message, key))
+		errs = append(errs, fmt.Errorf("%q "+errorMessage, key))
 		return nil, errs
 	}
 }

@@ -39,22 +39,22 @@ func resourceAutoScalingGroupCreate(d *schema.ResourceData, meta interface{}) er
 	res, err := client.AutoScalingGroup.Create(datas)
 
 	if err != nil {
-		return fmt.Errorf("Error creating autoscaling group: %v", err.Error())
+		return fmt.Errorf("error creating autoscaling group: %v", err.Error())
 	}
 	d.SetId(res.ID)
 
 	_, err = waitUntilAutoscalingGroupStatusChangedState(d, meta, []string{"ACTIVE", "WARNING"}, []string{"CRITICAL", "ERROR"}, d.Timeout(schema.TimeoutCreate))
 	if err != nil {
-		return fmt.Errorf("Error creating autoscaling group: %v", err.Error())
+		return fmt.Errorf("error creating autoscaling group: %v", err.Error())
 	}
 	// attach policies
 	policies, ok := d.GetOk("policies")
 	if ok {
-		for _, policy_id := range policies.(*schema.Set).List() {
-			action, _ := client.AutoScalingPolicy.AttachToASGroup(policy_id.(string), res.ID)
+		for _, policyId := range policies.(*schema.Set).List() {
+			action, _ := client.AutoScalingPolicy.AttachToASGroup(policyId.(string), res.ID)
 			_, err := waitUntilAsActionStatusChangedState(d, meta, action.ActionID)
 			if err != nil {
-				return fmt.Errorf("Error when attach policy id [%s]: %v", policy_id, err)
+				return fmt.Errorf("error when attach policy id [%s]: %v", policyId, err)
 			}
 		}
 	}
@@ -66,7 +66,7 @@ func resourceAutoScalingGroupCreate(d *schema.ResourceData, meta interface{}) er
 		"strict":           true,
 	})
 	if err != nil {
-		return fmt.Errorf("Error when update autoscaling group capacity [%s]: %v", res.ID, err)
+		return fmt.Errorf("error when update autoscaling group capacity [%s]: %v", res.ID, err)
 	}
 
 	return resourceAutoScalingGroupRead(d, meta)
@@ -76,7 +76,7 @@ func resourceAutoScalingGroupRead(d *schema.ResourceData, meta interface{}) erro
 	client := meta.(*CombinedConfig).goCMCClient()
 	autoscalinggroup, err := client.AutoScalingGroup.Get(d.Id())
 	if err != nil {
-		return fmt.Errorf("Error retrieving autoscaling group %s: %v", d.Id(), err)
+		return fmt.Errorf("error retrieving autoscaling group %s: %v", d.Id(), err)
 	}
 	_ = d.Set("name", autoscalinggroup.Name)
 	_ = d.Set("min_size", autoscalinggroup.MinSize)
@@ -94,22 +94,22 @@ func resourceAutoScalingGroupUpdate(d *schema.ResourceData, meta interface{}) er
 
 	if d.HasChange("policies") {
 		removed, added := getDiffSet(d.GetChange("policies"))
-		for _, remove_id := range removed.List() {
+		for _, removeId := range removed.List() {
 			// Logic xử lý phần tử bị xóa
 			// log.Printf("Detach policy id [%s]", remove_id)
-			res, _ := client.AutoScalingPolicy.DetachFromASGroup(remove_id.(string), d.Id())
+			res, _ := client.AutoScalingPolicy.DetachFromASGroup(removeId.(string), d.Id())
 			_, err := waitUntilAsActionStatusChangedState(d, meta, res.ActionID)
 			if err != nil {
-				return fmt.Errorf("Error when detach policy id [%s]: %v", remove_id, err)
+				return fmt.Errorf("error when detach policy id [%s]: %v", removeId, err)
 			}
 		}
-		for _, add_id := range added.List() {
+		for _, addId := range added.List() {
 			// Logic xử lý phần tử add them
 			// log.Printf("Attach policy id [%s]", add_id)
-			res, _ := client.AutoScalingPolicy.AttachToASGroup(add_id.(string), d.Id())
+			res, _ := client.AutoScalingPolicy.AttachToASGroup(addId.(string), d.Id())
 			_, err := waitUntilAsActionStatusChangedState(d, meta, res.ActionID)
 			if err != nil {
-				return fmt.Errorf("Error when attach policy id [%s]: %v", add_id, err)
+				return fmt.Errorf("error when attach policy id [%s]: %v", addId, err)
 			}
 		}
 	}
@@ -120,7 +120,7 @@ func resourceAutoScalingGroupUpdate(d *schema.ResourceData, meta interface{}) er
 			"as_configuration_id": d.Get("as_configuration_id").(string),
 		})
 		if err != nil {
-			return fmt.Errorf("Error when update autoscaling group [%s]: %v", id, err)
+			return fmt.Errorf("error when update autoscaling group [%s]: %v", id, err)
 		}
 	}
 	if d.HasChange("min_size") || d.HasChange("max_size") || d.HasChange("desired_capacity") {
@@ -131,7 +131,7 @@ func resourceAutoScalingGroupUpdate(d *schema.ResourceData, meta interface{}) er
 			"strict":           true,
 		})
 		if err != nil {
-			return fmt.Errorf("Error when update autoscaling group capacity [%s]: %v", id, err)
+			return fmt.Errorf("error when update autoscaling group capacity [%s]: %v", id, err)
 		}
 	}
 	return resourceAutoScalingGroupRead(d, meta)
@@ -143,11 +143,11 @@ func resourceAutoScalingGroupDelete(d *schema.ResourceData, meta interface{}) er
 	_, err := client.AutoScalingGroup.Delete(d.Id())
 
 	if err != nil {
-		return fmt.Errorf("Error delete autoscale autoscaling group: %v", err)
+		return fmt.Errorf("error delete autoscale autoscaling group: %v", err)
 	}
 	_, err = waitUntilAutoscalingGroupDeleted(d, meta)
 	if err != nil {
-		return fmt.Errorf("Error delete autoscale autoscaling group: %v", err)
+		return fmt.Errorf("error delete autoscale autoscaling group: %v", err)
 	}
 	return nil
 }

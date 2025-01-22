@@ -53,7 +53,7 @@ func dataSourceKeypairRead(d *schema.ResourceData, meta interface{}) error {
 		if err != nil {
 			if errors.Is(err, gocmcapiv2.ErrNotFound) {
 				d.SetId("")
-				return fmt.Errorf("Unable to retrieve keypair [%s]: %s", name, err)
+				return fmt.Errorf("unable to retrieve keypair [%s]: %s", name, err)
 			}
 		}
 		allKeypairs = append(allKeypairs, keypair)
@@ -61,7 +61,7 @@ func dataSourceKeypairRead(d *schema.ResourceData, meta interface{}) error {
 		params := map[string]string{}
 		keypairs, err := client.Keypair.List(params)
 		if err != nil {
-			return fmt.Errorf("Error when get keypairs %v", err)
+			return fmt.Errorf("error when get keypairs %v", err)
 		}
 		allKeypairs = append(allKeypairs, keypairs...)
 	}
@@ -78,12 +78,12 @@ func dataSourceKeypairRead(d *schema.ResourceData, meta interface{}) error {
 		allKeypairs = filteredKeypairs
 	}
 	if len(allKeypairs) < 1 {
-		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again")
+		return fmt.Errorf("your query returned no results. Please change your search criteria and try again")
 	}
 
 	if len(allKeypairs) > 1 {
 		gocmcapiv2.Logo("[DEBUG] Multiple results found: %#v", allKeypairs)
-		return fmt.Errorf("Your query returned more than one result. Please try a more specific search criteria")
+		return fmt.Errorf("your query returned more than one result. Please try a more specific search criteria")
 	}
 
 	return dataSourceComputeKeypairAttributes(d, allKeypairs[0])
@@ -92,8 +92,9 @@ func dataSourceKeypairRead(d *schema.ResourceData, meta interface{}) error {
 func dataSourceComputeKeypairAttributes(d *schema.ResourceData, keypair gocmcapiv2.Keypair) error {
 	log.Printf("[DEBUG] Retrieved keypair %s: %#v", keypair.Type, keypair)
 	d.SetId(keypair.Name)
-	d.Set("name", keypair.Name)
-	d.Set("type", keypair.Type)
-	d.Set("fingerprint", keypair.Fingerprint)
-	return nil
+	return errors.Join(
+		d.Set("name", keypair.Name),
+		d.Set("type", keypair.Type),
+		d.Set("fingerprint", keypair.Fingerprint),
+	)
 }

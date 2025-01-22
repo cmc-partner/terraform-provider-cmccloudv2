@@ -45,12 +45,12 @@ func dataSourceEcsGroupRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*CombinedConfig).goCMCClient()
 
 	var allEcsGroups []gocmcapiv2.EcsGroup
-	if ecs_group_id := d.Get("ecs_group_id").(string); ecs_group_id != "" {
-		ecsgroup, err := client.EcsGroup.Get(ecs_group_id)
+	if ecsGroupId := d.Get("ecs_group_id").(string); ecsGroupId != "" {
+		ecsgroup, err := client.EcsGroup.Get(ecsGroupId)
 		if err != nil {
 			if errors.Is(err, gocmcapiv2.ErrNotFound) {
 				d.SetId("")
-				return fmt.Errorf("Unable to retrieve ecs group [%s]: %s", ecs_group_id, err)
+				return fmt.Errorf("unable to retrieve ecs group [%s]: %s", ecsGroupId, err)
 			}
 		}
 		allEcsGroups = append(allEcsGroups, ecsgroup)
@@ -60,7 +60,7 @@ func dataSourceEcsGroupRead(d *schema.ResourceData, meta interface{}) error {
 		}
 		ecsgroups, err := client.EcsGroup.List(params)
 		if err != nil {
-			return fmt.Errorf("Error when get ecs groups %v", err)
+			return fmt.Errorf("error when get ecs groups %v", err)
 		}
 		allEcsGroups = append(allEcsGroups, ecsgroups...)
 	}
@@ -77,12 +77,12 @@ func dataSourceEcsGroupRead(d *schema.ResourceData, meta interface{}) error {
 		allEcsGroups = filteredEcsGroups
 	}
 	if len(allEcsGroups) < 1 {
-		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again")
+		return fmt.Errorf("your query returned no results. Please change your search criteria and try again")
 	}
 
 	if len(allEcsGroups) > 1 {
 		gocmcapiv2.Logo("[DEBUG] Multiple results found: %#v", allEcsGroups)
-		return fmt.Errorf("Your query returned more than one result. Please try a more specific search criteria")
+		return fmt.Errorf("your query returned more than one result. Please try a more specific search criteria")
 	}
 
 	return dataSourceComputeEcsGroupAttributes(d, allEcsGroups[0])
@@ -91,8 +91,9 @@ func dataSourceEcsGroupRead(d *schema.ResourceData, meta interface{}) error {
 func dataSourceComputeEcsGroupAttributes(d *schema.ResourceData, ecsgroup gocmcapiv2.EcsGroup) error {
 	log.Printf("[DEBUG] Retrieved ecsgroup %s: %#v", ecsgroup.ID, ecsgroup)
 	d.SetId(ecsgroup.ID)
-	d.Set("name", ecsgroup.Name)
-	d.Set("policy", ecsgroup.Policy)
-	d.Set("ecs_group_id", ecsgroup.ID)
-	return nil
+	return errors.Join(
+		d.Set("name", ecsgroup.Name),
+		d.Set("policy", ecsgroup.Policy),
+		d.Set("ecs_group_id", ecsgroup.ID),
+	)
 }
