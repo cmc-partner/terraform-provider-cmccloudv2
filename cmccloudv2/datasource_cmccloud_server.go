@@ -171,7 +171,7 @@ func dataSourceComputeServerAttributes(d *schema.ResourceData, server gocmcapiv2
 		d.Set("status", server.Status),
 		d.Set("vm_state", strings.ToLower(server.VMState)),
 		d.Set("status", strings.ToLower(server.Status)),
-		d.Set("description", server.Description),
+		//d.Set("description", server.Description),
 		d.Set("cpu", server.Flavor.CPU),
 		d.Set("ram", server.Flavor.RAM/1024),
 		d.Set("flavor_name", server.Flavor.OriginalName),
