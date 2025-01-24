@@ -154,7 +154,7 @@ func dataSourceComputeEIPAttributes(d *schema.ResourceData, eip gocmcapiv2.EIP) 
 	d.SetId(eip.ID)
 	return errors.Join(
 		d.Set("ip_address", eip.FloatingIPAddress),
-		d.Set("fix_ip_address", eip.FixedIPAddress),
+		//d.Set("fix_ip_address", eip.FixedIPAddress),
 		d.Set("device_id", eip.PortDetails.DeviceID),
 		d.Set("status", eip.Status),
 		d.Set("description", eip.Description),
